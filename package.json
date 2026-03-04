@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "pnpm clean && pnpm run --r --filter \"./packages/**\" build",
+    "build": "pnpm clean && pnpm run --r --filter \"./packages/**\" --filter \"!@fedimint/react-native\" --filter \"!@fedimint/react-native-bindings\" build",
+    "build:reactnative": "pnpm run --r --filter @fedimint/react-native-bindings --filter @fedimint/react-native build",
     "build:wasm": "bash scripts/build_wasm.sh",
     "clean": "pnpm run --r --parallel clean && rm -rf packages/**/*.json.tmp",
     "clean:deep": "rm -rf node_modules && pnpm run --r --parallel clean:deep",
@@ -28,7 +29,7 @@
     "reset": "pnpm clean && pnpm build && pnpm preview",
     "changeset": "changeset",
     "version": "changeset version",
-    "typecheck": "pnpm run --r --parallel typecheck",
+    "typecheck": "pnpm run --r --parallel --filter \"!@fedimint/react-native\" --filter \"!@fedimint/react-native-bindings\" typecheck",
     "coverage": "vitest run --coverage",
     "test": "pnpm run test:setup pnpm run test:lib",
     "test:setup": "bash scripts/setup_test_shell.sh",
@@ -37,21 +38,26 @@
     "test:create": "vitest --watch=false --project cli",
     "test:ui": "vitest --browser.headless=false --ui",
     "format": "prettier --write .",
-    "watch": "pnpm run --r --parallel --filter \"./packages/**\" watch"
+    "watch": "pnpm run --r --parallel --filter \"./packages/**\" watch",
+    "ubrn:android": "pnpm --filter react-native-bindings ubrn:android",
+    "ubrn:android:release": "pnpm --filter react-native-bindings ubrn:android:release",
+    "ubrn:clean": "pnpm --filter react-native-bindings ubrn:clean",
+    "ubrn:ios": "pnpm --filter react-native-bindings ubrn:ios",
+    "ubrn:ios:release": "pnpm --filter react-native-bindings ubrn:ios:release"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.29.7",
-    "@types/bun": "^1.2.23",
-    "@types/node": "^22.5.5",
+    "@changesets/cli": "^2.29.8",
+    "@types/bun": "^1.3.9",
+    "@types/node": "^22.19.11",
     "@vitest/browser": "^3.2.4",
     "@vitest/coverage-v8": "^3.2.4",
     "@vitest/ui": "^3.2.4",
-    "execa": "^9.6.0",
+    "execa": "^9.6.1",
     "glob": "^10.4.5",
-    "happy-dom": "^20.0.2",
+    "happy-dom": "^20.7.0",
     "patch-package": "^8.0.1",
     "playwright": "1.52.0",
-    "prettier": "^3.6.2",
+    "prettier": "^3.8.1",
     "sherif": "^0.8.4",
     "simple-git-hooks": "^2.13.1",
     "typescript": "5.5.2",
@@ -61,7 +67,7 @@
   },
   "packageManager": "pnpm@9.15.9",
   "engines": {
-    "node": "20.x"
+    "node": "22.x"
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm lint"

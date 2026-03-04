@@ -14,7 +14,11 @@ import type {
 
 /**
  * Handles communication with a generic transport.
- * Must be instantiated with a platform-specific transport. (wasm for web, react native, etc.)
+ * Must be instantiated with a platform-specific transport (WASM for web/Node, native module for React Native, etc.).
+ *
+ * It is completely uninitialized upon construction — you must always call `initialize()` explicitly
+ * before sending messages. On React Native, you can pass `dbPath` during `initialize()` so the
+ * native transport knows where to persist its RocksDB store.
  */
 export class TransportClient {
   // Generic Transport. Can be wasm, react native, node, etc.
@@ -25,10 +29,11 @@ export class TransportClient {
   logger: Logger
 
   /**
-   * @summary Constructor for the TransportClient
-   * @param transport - The platform-specific transport to use. (wasm for web, react native, etc.)
+   * @param transport - The platform-specific transport to use (WASM for web/Node, native module for React Native, etc.).
+   * @param dbPath - Path to the on-disk RocksDB store. Required on React Native; ignored on web/Node
+   *   where the WASM transport manages storage internally.
    */
-  constructor(transport: Transport) {
+  constructor(transport: Transport, dbPath?: string) {
     this.transport = transport
     this.logger = new Logger(transport.logger)
     this.transport.setMessageHandler(this.handleTransportMessage)
@@ -37,14 +42,18 @@ export class TransportClient {
     this.logger.debug('TransportClient transport', transport)
   }
 
-  // Idempotent setup - Loads the wasm module
-  initialize(): Promise<boolean>
-  initialize(testFilename: string): Promise<boolean>
-  initialize(testFilename?: string): Promise<boolean> {
+  /**
+   * Idempotent setup — safe to call multiple times, only initializes once.
+   *
+   * @param dbPath - Path to the on-disk database file. Required on React Native,
+   * the native transport uses this path to open (or create) a persistent RocksDB store.
+   * Not needed on web/Node where the WASM transport manages storage internally.
+   */
+  initialize(dbPath?: string): Promise<boolean> {
     if (this.initPromise) return this.initPromise
-    if (testFilename) {
+    if (dbPath) {
       this.initPromise = this.sendSingleMessage('init', {
-        filename: testFilename,
+        dbPath: dbPath,
       })
     } else {
       this.initPromise = this.sendSingleMessage('init')

@@ -8,35 +8,64 @@ jobs:
     permissions:
       contents: write
       id-token: write
-    runs-on: [self-hosted, linux, x64]
+    runs-on: macos-latest
 
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
       - name: Setup Nix
         uses: ./.github/actions/setup-nix
         with:
           cachix_auth_token: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
+      - name: Build React Native Bindings
+        uses: ./.github/actions/build-react-native
+        timeout-minutes: 90
+
       - name: Build WASM
         uses: ./.github/actions/build-wasm
 
-      - name: Install dependencies and build packages
+      - name: Build all packages
         run: |
-          pnpm install
-          pnpm build
+          nix develop -c pnpm build
+          nix develop -c pnpm build:reactnative
 
       - name: Publish Snapshot
+        timeout-minutes: 10
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          branch=$(git branch --show-current)
-          snapshot=$(echo $branch | tr -cs '[:alnum:]-' '-' | tr '[:upper:]' '[:lower:]' | sed 's/-$//')
-          npm config set "//registry.npmjs.org/:_authToken" "$NPM_TOKEN"
-          git reset --hard origin/$branch
-          pnpm clean
-          pnpm changeset version --no-git-tag --snapshot $snapshot
+          nix develop -c bash -c "
+          set -e
+          export CI=true
+          branch=\$(git branch --show-current)
+          snapshot=\$(echo \$branch | tr -cs '[:alnum:]-' '-' | tr '[:upper:]' '[:lower:]' | sed 's/-$//')
+          npm config set '//registry.npmjs.org/:_authToken' '$NPM_TOKEN'
+
+          pnpm changeset version --no-git-tag --snapshot \$snapshot
+
+          # Re-apply checksums (action exported them to env)
+          cd packages/react-native-bindings
+          node -e \"const pkg = require('./package.json'); pkg.checksums={android:'${{ env.ANDROID_SHA256 }}',ios:'${{ env.IOS_SHA256 }}'}; require('fs').writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n')\"
+          # This is required as the snapshot version is string is too long and considered invalid by the xcode.
+          patch -p0 --forward < patches/snapshot_version.patch || true
+          cd ../..
+
           pnpm build
-          pnpm changeset publish --no-git-tag --snapshot $snapshot --tag snapshot
+          pnpm build:reactnative
+          pnpm changeset publish --no-git-tag --snapshot \$snapshot --tag snapshot
+          "
+
+      - name: Upload Artifacts to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            packages/react-native-bindings/android-artifacts.zip
+            packages/react-native-bindings/ios-artifacts.zip
+          tag_name: snapshot
+          name: Snapshot Release
+          prerelease: true

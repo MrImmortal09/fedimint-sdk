@@ -12,6 +12,7 @@ import { FedimintWallet } from './FedimintWallet'
 export class WalletDirector {
   // Protected to allow for TestWalletDirector to access the client
   protected _client: TransportClient
+  public dbPath: string | undefined
 
   /**
    * Creates a new instance of WalletDirector.
@@ -22,20 +23,21 @@ export class WalletDirector {
    * @param {boolean} lazy - If true, delays Web Worker and WebAssembly initialization
    *                         until needed. Default is false.
    */
-  constructor(transport: Transport, lazy: boolean = false) {
+  constructor(transport: Transport, dbPath?: string, lazy: boolean = false) {
+    this.dbPath = dbPath
     if (!transport) {
       throw new Error('WalletDirector requires a transport implementation')
     }
     this._client = new TransportClient(transport)
     this._client.logger.info('WalletDirector instantiated')
     if (!lazy) {
-      this.initialize()
+      this.initialize(this.dbPath)
     }
   }
 
-  async initialize() {
+  async initialize(dbPath?: string) {
     this._client.logger.info('Initializing TransportClient')
-    await this._client.initialize()
+    await this._client.initialize(dbPath)
     this._client.logger.info('TransportClient initialized')
   }
 
@@ -149,6 +151,7 @@ export class WalletDirector {
    * @returns {Promise<string[]>} A promise that resolves to the generated mnemonic phrase.
    */
   async generateMnemonic(): Promise<string[]> {
+    await this._client.initialize()
     const result = await this._client.sendSingleMessage<{ mnemonic: string[] }>(
       'generate_mnemonic',
     )
@@ -160,6 +163,7 @@ export class WalletDirector {
    * @returns {Promise<string[]>} A promise that resolves to the current mnemonic phrase.
    */
   async getMnemonic(): Promise<string[]> {
+    await this._client.initialize()
     const result = await this._client.sendSingleMessage<{ mnemonic: string[] }>(
       'get_mnemonic',
     )
@@ -172,6 +176,7 @@ export class WalletDirector {
    * @returns {Promise<boolean>} A promise that resolves to true if the mnemonic was set successfully.
    */
   async setMnemonic(words: string[]): Promise<boolean> {
+    await this._client.initialize()
     const result = await this._client.sendSingleMessage<{ success: boolean }>(
       'set_mnemonic',
       { words },
@@ -216,6 +221,7 @@ export class WalletDirector {
    * @returns {Promise<boolean>} A promise that resolves to true if a mnemonic is set, false otherwise.
    */
   async hasMnemonicSet(): Promise<boolean> {
+    await this._client.initialize()
     return await this._client.sendSingleMessage<boolean>('has_mnemonic_set')
   }
 }
