@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import { AppiumTestBase } from '../configs/appium/AppiumTestBase'
+import { APP_TITLE, AppiumTestBase } from '../configs/appium/AppiumTestBase'
 
 // Second federation-free test: `InviteCode.parse` + `federationId()`, which
 // the example app exposes in its own section. Parsing an invite code talks to no
@@ -13,7 +13,7 @@ export class InviteCodeService extends AppiumTestBase {
   async execute(): Promise<void> {
     console.log('Starting InviteCodeService test')
 
-    await this.waitForText('Fedimint Android SDK Demo', 0, true, 30000)
+    await this.waitForText(APP_TITLE, 0, true, 30000)
 
     // The example app pre-fills its Join section with a known federation's invite
     // code. Reading it back from there rather than hardcoding one here keeps

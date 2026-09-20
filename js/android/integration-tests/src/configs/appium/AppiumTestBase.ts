@@ -31,6 +31,14 @@ const DEFAULT_SCROLL_OPTIONS: Required<ScrollOptions> = {
 
 export const DEFAULT_TIMEOUT = 20000
 
+/**
+ * The title, the first view in the example app's layout and the top-most thing
+ * on its one long screen. It has no id to name it by, so text is what tests
+ * match on — and being the first child, it is also the last thing to scroll
+ * into view on the way up, which makes it the anchor for `scrollToTop`.
+ */
+export const APP_TITLE = 'Fedimint Android SDK Demo'
+
 // Longer budget for operations that touch a real federation over the
 // network (join, invoice pay/create) rather than purely-local SDK calls.
 export const NETWORK_TIMEOUT = 60000
@@ -529,6 +537,43 @@ export class AppiumTestBase {
       () => this.findElementByText(text, instanceNum, exactMatch, timeout),
       `with text "${text}"`,
       scrollOptions,
+    )
+  }
+
+  /**
+   * Brings the top of the example app into view, so a test starts from the same
+   * place whatever the one before it did.
+   *
+   * The whole app is one tall scroll view, and a test that scrolls down to reach
+   * a section leaves it there. Nothing in the runner's state model records that
+   * — a test that produces no state is not followed by a reset — so the next
+   * test inherited a screen with its title scrolled out, and a title that is
+   * off screen is absent from the UiAutomator2 tree altogether: the wait for it
+   * ran out its full 30 seconds against an app that was working fine.
+   *
+   * Returns straight away when the title is already showing, which is the
+   * usual case. Only scrolls up: the top is the one position every test can
+   * assume, and there is nothing further to find by going the other way.
+   */
+  async scrollToTop(maxScrolls = 15): Promise<void> {
+    const { scrollDuration, scrollPercentage } = DEFAULT_SCROLL_OPTIONS
+
+    for (let i = 0; i <= maxScrolls; i++) {
+      // A short wait rather than the default 20s: absence is the expected
+      // answer on every check but the last. Long enough in total, across the
+      // whole loop, to also cover an app that is still starting.
+      if (await this.isTextPresent(APP_TITLE, true, 1500)) {
+        if (i > 0) debugLog(`Top of the screen reached after ${i} scroll(s)`)
+        return
+      }
+      if (i < maxScrolls)
+        await this.scroll('up', scrollDuration, scrollPercentage)
+    }
+
+    throw new Error(
+      `Could not bring the top of the app into view: "${APP_TITLE}" was not ` +
+        `found after ${maxScrolls} scrolls up. Is the app in the foreground, ` +
+        'with nothing (a system dialog, say) on top of it?',
     )
   }
 

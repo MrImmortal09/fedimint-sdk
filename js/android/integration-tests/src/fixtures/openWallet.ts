@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
 import {
+  APP_TITLE,
   AppiumTestBase,
   NETWORK_TIMEOUT,
 } from '../configs/appium/AppiumTestBase'
@@ -21,7 +22,7 @@ export const openWallet: Fixture = {
   async run(t: AppiumTestBase): Promise<void> {
     console.log('[fixture] opening the wallet')
 
-    await t.waitForText('Fedimint Android SDK Demo', 0, true, 30000)
+    await t.waitForText(APP_TITLE, 0, true, 30000)
     await t.clickElementByKey('openWallet')
 
     // A first open builds the storage and generates a seed, which on a cold

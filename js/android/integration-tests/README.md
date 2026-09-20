@@ -121,7 +121,9 @@ reading the text once.
 2. Register it in `src/registry.ts`'s `availableTests` map.
 3. Declare `static produces` if the test leaves the app in a state a later test would
    inherit (an open SDK, a joined federation). The runner resets the app to a fresh install
-   before any test whose `static prerequisites` don't include what is on the device.
+   before any test whose `static prerequisites` don't include what is on the device. Scroll
+   position is not part of that state: the runner scrolls back to the top before every test,
+   so a test may leave the app scrolled anywhere.
 4. If the test needs a starting state beyond a fresh install (e.g. an already-joined
    federation), add a fixture under `src/fixtures/` (see `src/fixtures/types.ts`) and declare
    `static prerequisites` on the test class — the runner resolves and caches fixtures across

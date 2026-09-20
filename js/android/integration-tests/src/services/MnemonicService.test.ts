@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
 import {
+  APP_TITLE,
   AppiumTestBase,
   NETWORK_TIMEOUT,
 } from '../configs/appium/AppiumTestBase'
@@ -24,7 +25,7 @@ export class MnemonicService extends AppiumTestBase {
   async execute(): Promise<void> {
     console.log('Starting MnemonicService test')
 
-    await this.waitForText('Fedimint Android SDK Demo', 0, true, 30000)
+    await this.waitForText(APP_TITLE, 0, true, 30000)
 
     // Before anything is open the example app reports so, and "Show seed" is
     // disabled — asserting the starting point keeps a stale app left behind

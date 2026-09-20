@@ -123,6 +123,14 @@ async function runTests(testNames: string[]): Promise<void> {
 
       try {
         await test.initialize()
+
+        // Every test starts from the top of the app, whatever the last one
+        // left on screen. Before the fixtures rather than after the previous
+        // test: it then holds for the first test and for one that died partway
+        // through too, and it sits where the dependence is — the first thing a
+        // fixture or test does is look for the title.
+        await test.scrollToTop()
+
         await ensureState(test, TestClass.prerequisites)
         await test.execute()
 
